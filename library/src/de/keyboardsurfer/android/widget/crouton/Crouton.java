@@ -57,6 +57,7 @@ public final class Crouton {
   private final Style style;
   private Configuration configuration = null;
   private final View customView;
+  private int widthSpec;
 
   private OnClickListener onClickListener;
 
@@ -574,11 +575,10 @@ public final class Crouton {
       if (getConfiguration().inAnimationResId > 0) {
         this.inAnimation = AnimationUtils.loadAnimation(getActivity(), getConfiguration().inAnimationResId);
       } else {
-        measureCroutonView();
         this.inAnimation = DefaultAnimationsBuilder.buildDefaultSlideInDownAnimation(getView());
       }
     }
-
+    measureCroutonView();
     return inAnimation;
   }
 
@@ -590,7 +590,7 @@ public final class Crouton {
         this.outAnimation = DefaultAnimationsBuilder.buildDefaultSlideOutUpAnimation(getView());
       }
     }
-
+    measureCroutonView();
     return outAnimation;
   }
 
@@ -678,14 +678,14 @@ public final class Crouton {
    *         <code>false</code>.
    */
   boolean isShowing() {
-    return (null != activity) && (isCroutonViewNotNull() || isCustomViewNotNull());
+    return (null != activity) && (isCroutonViewAvailable() || isCustomViewAvailable());
   }
-  
-  private boolean isCroutonViewNotNull() {
+
+  private boolean isCroutonViewAvailable() {
     return (null != croutonView) && (null != croutonView.getParent());
   }
-  
-  private boolean isCustomViewNotNull() {
+
+  private boolean isCustomViewAvailable() {
     return (null != customView) && (null != customView.getParent());
   }
 
@@ -753,16 +753,17 @@ public final class Crouton {
   }
 
   private void measureCroutonView() {
-      View view = getView();
-      int widthSpec;
-      if (viewGroup != null) {
-        widthSpec = View.MeasureSpec.makeMeasureSpec(viewGroup.getMeasuredWidth(), View.MeasureSpec.AT_MOST);
-      } else {
+    View view = getView();
+    if (null != viewGroup) {
+      widthSpec = View.MeasureSpec.makeMeasureSpec(viewGroup.getMeasuredWidth(), View.MeasureSpec.AT_MOST);
+    } else {
+      if (null != activity) {
         widthSpec = View.MeasureSpec.makeMeasureSpec(activity.getWindow().getDecorView().getMeasuredWidth(),
-                  View.MeasureSpec.AT_MOST);
+          View.MeasureSpec.AT_MOST);
       }
+    }
 
-      view.measure(widthSpec, View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+    view.measure(widthSpec, View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
   }
 
   private void initializeCroutonView() {
@@ -829,7 +830,7 @@ public final class Crouton {
 
     // if a padding dimension has been set, this will overwrite any padding
     // in pixels
-    if (this.style.paddingDimensionResId > 0) {
+    if (0 < this.style.paddingDimensionResId) {
       padding = resources.getDimensionPixelSize(this.style.paddingDimensionResId);
     }
     contentView.setPadding(padding, padding, padding, padding);
@@ -848,10 +849,18 @@ public final class Crouton {
     if (null != image) {
       textParams.addRule(RelativeLayout.RIGHT_OF, image.getId());
     }
-    
-    if (this.style.gravity == Gravity.CENTER) textParams.addRule(RelativeLayout.CENTER_IN_PARENT);
-    else if (this.style.gravity == Gravity.CENTER_VERTICAL) textParams.addRule(RelativeLayout.CENTER_VERTICAL);
-    else if (this.style.gravity == Gravity.CENTER_HORIZONTAL) textParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
+
+    switch (this.style.gravity) {
+      case Gravity.CENTER:
+        textParams.addRule(RelativeLayout.CENTER_IN_PARENT);
+        break;
+      case Gravity.CENTER_VERTICAL:
+        textParams.addRule(RelativeLayout.CENTER_VERTICAL);
+        break;
+      case Gravity.CENTER_HORIZONTAL:
+        textParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
+        break;
+    }
 
     contentView.addView(text, textParams);
     return contentView;
